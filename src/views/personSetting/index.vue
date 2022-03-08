@@ -1,0 +1,121 @@
+<template>
+  <div class="person-setting-container">
+      <el-form
+        :model="adminInfo"
+        :rules="setRules"
+        ref="adminInfoForm"
+        label-width="100px"
+        width="500px"
+      >
+        <el-form-item label="用户名">
+            <el-input v-model="adminInfo.name" placeholder="请输入用户名"></el-input>
+        </el-form-item>
+        <el-form-item label="旧密码" prop="oldLoginPwd">
+            <el-input
+              placeholder="请输入旧密码"
+              type="password"
+              v-model="adminInfo.oldLoginPwd"
+            ></el-input>
+        </el-form-item>
+        <el-form-item label="新密码" prop="loginPwd">
+            <el-input
+                placeholder="请输入新密码"
+                type="password"
+                v-model="adminInfo.loginPwd"
+            ></el-input>
+        </el-form-item>
+        <el-form-item label="新密码确认" prop="loginPwdConfirm">
+            <el-input
+                placeholder="请确认新密码"
+                type="password"
+                v-model="adminInfo.loginPwdConfirm"
+            ></el-input>
+        </el-form-item>
+
+        <div class="block">
+            <el-button type="primary" @click="handleClick">修改</el-button>
+            <el-button type="primary" @click="handleBack">返回</el-button>
+        </div>
+
+      </el-form>
+  </div>
+</template>
+
+<script>
+import { getInfoApi, putInfoApi } from "@/api/user.js"
+
+export default {
+    data(){
+        var validatePass = (rule, value, callback)=>{
+            if(value === ""){
+                callback(new Error("请再次输入新密码"))
+            }else if(value !== this.adminInfo.loginPwd){
+                callback(new Error("两次输入密码不一致！"))
+            }else{
+                callback()
+            }
+        };
+        return {
+            adminInfo: {
+                name: "",  //用户名
+                oldLoginPwd: "",  //旧密码
+                loginPwd: "", //新密码
+                loginPwdConfirm: "", //新密码确认
+            },
+            setRules: {
+                oldLoginPwd: [
+                    {required: true, trigger: 'blur', message: "请输入旧密码"}
+                ],
+                loginPwd: [
+                    {required: true, trigger: 'blur', message: "请输入新密码"}
+                ],
+                loginPwdConfirm: [
+                    {required: true, trigger: 'blur', message: "请再次输入新密码"},
+                    {validator: validatePass, trigger: 'blur'}
+                ]
+            },
+        }
+    },
+    created(){
+        this.fetchData();
+    },
+    methods: {
+        fetchData(){
+            getInfoApi().then(({data})=>{
+                this.adminInfo = data;
+            })
+        },
+        handleClick(){
+            if(this.adminInfo.name && this.adminInfo.loginPwd && this.adminInfo.oldLoginPwd ){
+                putInfoApi(this.adminInfo).then((res)=>{
+                    if( typeof res === 'string' ){
+                        const resp = JSON.parse(res);
+                        this.$message.error(resp.msg);
+                    }else{
+                        // 修改成功
+                        this.$message.success("修改成功")
+                        this.$store.dispatch("user/logout").then(()=>{
+                            this.$router.push(`/login/redirect=${this.$route.fullPath}`)
+                        })
+                    }
+                })
+            }else{
+                this.$message.error("请填写所有信息")
+            }
+        },
+        handleBack(){
+            this.$router.push("/")
+        },
+    }
+}
+</script>
+
+<style lang="scss" scoped>
+.person-setting-container {
+    padding: 20px;
+    width: 500px;
+    .block{
+        margin: 20px 0;
+    }
+}
+</style>
